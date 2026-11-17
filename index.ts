@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
+import { pool } from './db';
 
 const app = express();
 const port: number = 3000;
@@ -11,6 +12,21 @@ app.set('views', path.join(process.cwd(), 'views'));
 
 app.get('/', (req: Request, res: Response): void => {
   res.send('Hello World!');
+});
+
+// Neonへの接続をSELECT文で確認する
+app.get('/api/db-check', async (_req: Request, res: Response) => {
+  try {
+    const result = await pool.query('SELECT 1 AS connection_test');
+    if (result.rows[0]?.connection_test !== 1) {
+      res.status(503).json({ status: 'error', database: 'unavailable' });
+      return;
+    }
+    res.json({ status: 'ok', database: 'connected' });
+  } catch (error) {
+    console.error('DB接続確認に失敗しました', error);
+    res.status(503).json({ status: 'error', database: 'unavailable' });
+  }
 });
 
 app.listen(port, (): void => {
